@@ -1,6 +1,6 @@
 buildscript {
   repositories {
-    jcenter()
+		mavenCentral()
 	  mavenLocal()
   }
   dependencies {
@@ -13,13 +13,17 @@ apply plugin: "java"
 apply plugin: "com.marklogic.ml-gradle"
 
 repositories {
-	jcenter()
+	mavenCentral()
+	mavenLocal()
 }
 
 dependencies {
 	mlBundle "com.marklogic:marklogic-unit-test-modules:${marklogicUnitTestVersion}"
 
 	// For running marklogic-unit-test tests via JUnit
-	testCompile "com.marklogic:marklogic-unit-test-client:${marklogicUnitTestVersion}"
-	testCompile "junit:junit:4.12"
+	testImplementation "com.marklogic:marklogic-junit5:${marklogicUnitTestVersion}"
+}
+
+test {
+	useJUnitPlatform()
 }
