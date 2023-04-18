@@ -1,18 +1,30 @@
+buildscript {
+  repositories {
+		// To use gradle in disconnected mode, you just need to set the 'disconnected' property. E.g. gradle compileJava -Pdisconnected
+		if (project.hasProperty("disconnected") && !"FALSE".equalsIgnoreCase(disconnected)) {
+			println "Using offline buildscript dependency repositories"
+			maven { url uri(projectMavenRepo) }
+		} else {
+			println "Using online buildscript dependency repositories"
+			mavenCentral()
+		}
+	}
+}
+
 plugins {
 	id 'java' //optional - delete if not needed
-	id 'net.saliman.properties' version '1.4.6'
-	id 'com.marklogic.ml-gradle' version '3.7.1'
+	id 'net.saliman.properties' version '1.5.1'
+	id 'com.marklogic.ml-gradle' version "4.5.1"
 }
 
 repositories {
 	// To use gradle in disconnected mode, you just need to set the 'disconnected' property. E.g. gradle compileJava -Pdisconnected
 	if (project.hasProperty("disconnected") && !"FALSE".equalsIgnoreCase(disconnected)) {
-		println "Using offline repositories"
+		println "Using offline dependency repositories"
 		maven { url uri(projectMavenRepo) }
 	} else {
-		println "Using online repositories"
-		jcenter()
-		maven { url "http://developer.marklogic.com/maven2/" }
+		println "Using online dependency repositories"
+		mavenCentral()
 	}
 }
 
@@ -21,11 +33,8 @@ configurations {
 }
 
 dependencies {
-	// sample java compile dependency. Remove if not required
-	compile 'com.marklogic:marklogic-xcc:9.0.7'
-
 	//sample mlcp dependency. Remove if not required
-	mlcp "com.marklogic:mlcp:9.0.7"
+	mlcp "com.marklogic:mlcp:10.0.6.2"
 }
 
 /**
@@ -46,9 +55,8 @@ task downloadToProjectMavenRepo(type: Copy) {
 	/*
 	 * Include any configuration dependencies here that you want to copy the dependencies for.
 	 * These are defined in the 'dependencies' block. E.g. you need to include
-	 * configurations.compile.files if you want your java 'compile' dependencies downloaded
+	 * configurations.implementation.files if you want your java 'implementation' dependencies downloaded
 	 */
-	configurations.compile.files //includes 'java' compile dependencies. Remove if not needed
 	configurations.mlcp.files //includes 'mlcp' dependencies. Remove if not needed
 
 	from new File(gradle.gradleUserHomeDir, 'caches/modules-2/files-2.1') // correct as of gradle 4.7

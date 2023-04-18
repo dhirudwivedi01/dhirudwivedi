@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2023 MarkLogic Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.marklogic.gradle.task.test
 
 import com.marklogic.client.ext.DatabaseClientConfig
@@ -7,6 +22,8 @@ import com.marklogic.test.unit.JUnitTestSuite
 import com.marklogic.test.unit.TestManager
 import org.apache.commons.io.FileUtils
 import org.gradle.api.GradleException
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 
 /**
@@ -15,6 +32,8 @@ import org.gradle.api.tasks.TaskAction
  */
 class UnitTestTask extends MarkLogicTask {
 
+	@Input
+	@Optional
 	DatabaseClientConfig databaseClientConfig = new DatabaseClientConfig()
 
 	@TaskAction
@@ -66,22 +85,29 @@ class UnitTestTask extends MarkLogicTask {
 			def report = new DefaultJUnitTestReporter().reportOnJUnitTestSuites(suites)
 			println report
 
-			String resultsPath = "build/test-results/marklogic-unit-test"
+			File resultsDir = new File(getProject().getProjectDir(), "build/test-results/marklogic-unit-test")
 			String resultProperty = "unitTestResultsPath"
 			if (project.hasProperty(resultProperty)) {
-				resultsPath = project.property(resultProperty)
+				resultsDir = new File(project.property(resultProperty))
 			}
 
-			File resultsDir = new File(resultsPath)
 			if (resultsDir.exists()) {
 				try {
-					FileUtils.cleanDirectory(resultsDir)
+					FileUtils.deleteDirectory(resultsDir)
 					println "Deleted existing results directory: " + resultsDir
 				} catch (Exception e) {
 					println "Unable to delete test results directory: " + resultsDir
 				}
 			}
-			resultsDir.mkdirs()
+
+			// The resultsDir may exist in case the call to delete it failed, in which case the exception is logged
+			// but not rethrown. In that case, we don't need to try to make the directory.
+			if (!resultsDir.exists()) {
+				if (!resultsDir.mkdirs()) {
+					throw new GradleException("Unable to run tests; unable to create results directory at: " + resultsDir +
+						"; please ensure you have write permission to this directory")
+				}
+			}
 
 			int fileCount = 0;
 			boolean testsFailed = false
@@ -95,12 +121,11 @@ class UnitTestTask extends MarkLogicTask {
 				fileCount++;
 			}
 
-			println "\n" + fileCount + " test result files were written to: " + resultsPath
+			println "\n" + fileCount + " test result files were written to: " + resultsDir
 
 			if (testsFailed) {
-				throw new GradleException("There were failing tests. See the test results at: " + resultsPath)
+				throw new GradleException("There were failing tests. See the test results at: " + resultsDir)
 			}
-
 		} finally {
 			client.release()
 		}

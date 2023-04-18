@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2023 MarkLogic Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.marklogic.gradle
 
 import com.marklogic.appdeployer.AppConfig
@@ -100,8 +115,8 @@ class MarkLogicPlugin implements Plugin<Project> {
 		project.getConfigurations().create("mlRestApi")
 
 		// No group or description on these so they don't show up in "gradle tasks"
-		project.task("mlDeployApp", type: DeployAppTask, dependsOn: ["mlDeleteModuleTimestampsFile", "mlPrepareBundles"])
-		project.task("mlUndeployApp", type: UndeployAppTask, dependsOn: ["mlPrepareBundles"])
+		project.task("mlDeployApp", type: DeployAppTask, dependsOn: ["mlDeleteModuleTimestampsFile"])
+		project.task("mlUndeployApp", type: UndeployAppTask)
 
 		String deployGroup = "ml-gradle Deploy"
 		project.task("mlPostDeploy", group: deployGroup, description: "Add dependsOn to this task to add tasks at the end of mlDeploy").mustRunAfter(["mlDeployApp"])
@@ -113,6 +128,10 @@ class MarkLogicPlugin implements Plugin<Project> {
 		project.task("mlRedeploy", group: deployGroup, dependsOn: ["mlClearModulesDatabase", "mlDeploy", "mlDeleteResourceTimestampsFile"], description: "Clears the modules database and then deploys the application")
 		project.task("mlDeleteResourceTimestampsFile", type: DeleteResourceTimestampsFileTask, group: deployGroup, description: "Delete the properties file in the build directory (stored there by default) that keeps track of when each resource was last deployed; the file path can be overridden by setting the filePath property of this class")
 		project.task("mlPreviewDeploy", type: PreviewDeployTask, group: deployGroup, description: "Preview a deployment without making any changes")
+		project.task("mlDeployToReplica", type: DeployToReplicaTask, group: deployGroup,
+			description: "Deploys application resources in the same manner as mlDeploy, but will not deploy anything that " +
+				"involves writing data to a database - such as modules, schemas, and triggers - thus making it safe for use " +
+				"when deploying an application to a replica cluster")
 
 		String adminGroup = "ml-gradle Admin"
 		project.task("mlInit", type: InitTask, group: adminGroup, description: "Perform a one-time initialization of a MarkLogic server; uses the properties 'mlLicenseKey' and 'mlLicensee'")
@@ -151,7 +170,7 @@ class MarkLogicPlugin implements Plugin<Project> {
 			"Note that this includes those created via the deployment of resources such as temporal collections and view schemas. You may want to use mlDeleteUserSchemas instead.")
 		project.task("mlClearTriggersDatabase", type: ClearTriggersDatabaseTask, group: dbGroup, description: "Deletes all documents in the triggers database")
 		project.task("mlDeleteDatabase", type: DeleteDatabaseTask, group: dbGroup, description: "Delete a database along with all of its forests and any replicas; requires -Pconfirm=true to be set so this isn't accidentally executed")
-		project.task("mlDeployDatabases", type: DeployDatabasesTask, group: dbGroup, dependsOn: "mlPrepareBundles", description: "Deploy each database, updating it if it exists, in the configuration directory")
+		project.task("mlDeployDatabases", type: DeployDatabasesTask, group: dbGroup, description: "Deploy each database, updating it if it exists, in the configuration directory")
 		project.task("mlMergeContentDatabase", type: MergeContentDatabaseTask, group: dbGroup, description: "Merge the database named by mlAppConfig.contentDatabaseName")
 		project.task("mlMergeDatabase", type: MergeDatabaseTask, group: dbGroup, description: "Merge the database named by the project property dbName; e.g. gradle mlMergeDatabase -PdbName=my-database")
 		project.task("mlReindexContentDatabase", type: ReindexContentDatabaseTask, group: dbGroup, description: "Reindex the database named by mlAppConfig.contentDatabaseName")
@@ -215,7 +234,8 @@ class MarkLogicPlugin implements Plugin<Project> {
 		project.task("mlDeleteForestReplicas", type: DeleteForestReplicasTask, group: forestGroup, description: "Deprecated - delete forest replicas via the command.forestNamesAndReplicaCounts map; requires -Pconfirm=true to be set so this isn't accidentally executed")
 		project.task("mlDeployCustomForests", type: DeployCustomForestsTask, group: forestGroup, description: "Deploy custom forests as defined in subdirectories of the forests configuration directory")
 		project.task("mlDeployForestReplicas", type: DeployForestReplicasTask, group: forestGroup, description: "Prefer this over mlConfigureForestReplicas; it does the same thing, but uses the ConfigureForestReplicasCommand that is used by mlDeploy")
-		project.task("mlPrintForestPlan", type: PrintForestPlanTask, group: forestGroup, description: "Print a list of primary forests to be created for a database specified by -Pdatabase=(name of database) when the database is next deployed")
+		project.task("mlPrintForestPlan", type: PrintForestPlanTask, group: forestGroup, description: "Print a list of primary forests to be created for a database specified by -Pdatabase=(name of database) when the database is next deployed. " +
+			"This is only intended to be used when forests are created dynamically via properties.")
 
 		String groupsGroup = "ml-gradle Group"
 		project.task("mlDeployGroups", type: DeployGroupsTask, group: groupsGroup, description: "Deploy each group, updating it if it exists, in the configuration directory")
@@ -226,7 +246,7 @@ class MarkLogicPlugin implements Plugin<Project> {
 		project.task("mlUndeployMimetypes", type: UndeployMimetypesTask, group: mimetypesGroup, description: "Undeploy each mimetype defined in the configuration directory")
 
 		String modulesGroup = "ml-gradle Modules"
-		project.task("mlLoadModules", type: LoadModulesTask, group: modulesGroup, dependsOn: "mlPrepareBundles", description: "Loads modules from directories defined by mlAppConfig or via a property on this task").mustRunAfter(["mlClearModulesDatabase"])
+		project.task("mlLoadModules", type: LoadModulesTask, group: modulesGroup, dependsOn: ["mlPrepareBundles", "mlDeleteModuleTimestampsFile"], description: "Loads modules from directories defined by mlAppConfig or via a property on this task").mustRunAfter(["mlClearModulesDatabase"])
 		project.task("mlReloadModules", group: modulesGroup, dependsOn: ["mlClearModulesDatabase", "mlLoadModules"], description: "Reloads modules by first clearing the modules database and then loading modules")
 		project.task("mlWatch", type: WatchTask, group: modulesGroup, description: "Run a loop that checks for new/modified modules every second and loads any that it finds. To ignore files that are already dirty and only process new changes, include -PignoreDirty=true . ")
 		project.task("mlDeleteModuleTimestampsFile", type: DeleteModuleTimestampsFileTask, group: modulesGroup, description: "Delete the properties file in the build directory that keeps track of when each module was last loaded")
@@ -262,7 +282,7 @@ class MarkLogicPlugin implements Plugin<Project> {
 		project.task("mlReloadSchemas", dependsOn: ["mlDeleteUserSchemas", "mlLoadSchemas"], group: schemasGroup, description: "Deletes user schemas via mlDeleteUserSchemas and then loads schemas via mlLoadSchemas")
 
 		String serverGroup = "ml-gradle Server"
-		project.task("mlDeployServers", type: DeployServersTask, group: serverGroup, dependsOn: "mlPrepareBundles", description: "Updates the REST API server (if it exists) and deploys each other server, updating it if it exists, in the configuration directory ")
+		project.task("mlDeployServers", type: DeployServersTask, group: serverGroup, description: "Updates the REST API server (if it exists) and deploys each other server, updating it if it exists, in the configuration directory ")
 		project.task("mlUndeployOtherServers", type: UndeployOtherServersTask, group: serverGroup, description: "Delete any non-REST API servers (e.g. ODBC and XBC servers) defined by server files in the configuration directory")
 
 		String securityGroup = "ml-gradle Security"
@@ -270,6 +290,8 @@ class MarkLogicPlugin implements Plugin<Project> {
 		project.task("mlDeployCertificateAuthorities", type: DeployCertificateAuthoritiesTask, group: securityGroup, description: "Deploy each certificate authority, updating it if it exists, in the configuration directory")
 		project.task("mlDeployCertificateTemplates", type: DeployCertificateTemplatesTask, group: securityGroup, description: "Deploy each certificate template, updating it if it exists, in the configuration directory")
 		project.task("mlDeployExternalSecurity", type: DeployExternalSecurityTask, group: securityGroup, description: "Deploy external security configurations, updating each if it exists, in the configuration directory")
+		project.task("mlDeployHostCertificateTemplates", type: DeployHostCertificateTemplatesTask, group: securityGroup, description: "Deploy host certificate templates, updating each if it exists, in the configuration directory")
+		project.task("mlDeploySecureCredentials", type: DeploySecureCredentialsTask, group: securityGroup, description: "Deploy secure credentials configurations, updating each if it exists, in the configuration directory")
 		project.task("mlDeployPrivileges", type: DeployPrivilegesTask, group: securityGroup, description: "Deploy each privilege, updating it if it exists, in the configuration directory")
 		project.task("mlDeployProtectedCollections", type: DeployProtectedCollectionsTask, group: securityGroup, description: "Deploy each protected collection, updating it if it exists, in the configuration directory")
 		project.task("mlDeployProtectedPaths", type: DeployProtectedPathsTask, group: securityGroup, description: "Deploy each protected path, updating it if it exists, in the configuration directory")
@@ -280,6 +302,7 @@ class MarkLogicPlugin implements Plugin<Project> {
 		project.task("mlUndeployAmps", type: UndeployAmpsTask, group: securityGroup, description: "Undeploy (delete) each amp in the configuration directory")
 		project.task("mlUndeployCertificateTemplates", type: UndeployCertificateTemplatesTask, group: securityGroup, description: "Undeploy (delete) each certificate template in the configuration directory")
 		project.task("mlUndeployExternalSecurity", type: UndeployExternalSecurityTask, group: securityGroup, description: "Undeploy (delete) each external security configuration in the configuration directory")
+		project.task("mlUndeploySecureCredentials", type: UndeploySecureCredentialsTask, group: securityGroup, description: "Undeploy (delete) each secure credentials configuration in the configuration directory")
 		project.task("mlUndeployPrivileges", type: UndeployPrivilegesTask, group: securityGroup, description: "Undeploy (delete) each privilege in the configuration directory")
 		project.task("mlUndeployProtectedCollections", type: UndeployProtectedCollectionsTask, group: securityGroup, description: "Undeploy (delete) each protected collection in the configuration directory")
 		project.task("mlUndeployProtectedPaths", type: UndeployProtectedPathsTask, group: securityGroup, description: "Undeploy (delete) each protected path in the configuration directory")
@@ -293,7 +316,7 @@ class MarkLogicPlugin implements Plugin<Project> {
 
 		String taskGroup = "ml-gradle Task"
 		project.task("mlDeleteAllTasks", type: DeleteAllTasksTask, group: taskGroup, description: "Delete all scheduled tasks in the cluster")
-		project.task("mlDeployTasks", type: DeployTasksTask, group: taskGroup, description: "Deploy each scheduled task, updating it if it exists, in the configuration directory")
+		project.task("mlDeployTasks", type: DeployTasksTask, group: taskGroup, description: "Deploy each scheduled task, updating it if it exists, in the configuration directory; also updates the task server if a task server config file exists")
 		project.task("mlDisableAllTasks", type: DisableAllTasksTask, group: taskGroup, description: "Disable each scheduled task in the group identified by the mlGroupName property, which defaults to 'Default'")
 		project.task("mlEnableAllTasks", type: EnableAllTasksTask, group: taskGroup, description: "Enable each scheduled task in the group identified by the mlGroupName property, which defaults to 'Default'")
 		project.task("mlUndeployTasks", type: UndeployTasksTask, group: taskGroup, description: "Undeploy (delete) each scheduled task in the configuration directory")
@@ -321,12 +344,20 @@ class MarkLogicPlugin implements Plugin<Project> {
 		String unitTestGroup = "ml-gradle Unit Test"
 		project.task("mlGenerateUnitTestSuite", type: GenerateUnitTestSuiteTask, group: unitTestGroup,
 			description: "Generate a marklogic-unit-test test suite. The test suite files are written to src/test/ml-modules/root/test/suites by default; use -PsuitesPath to override this. " +
-				"Can use -PsuiteName to override the name of the test suite, and -PtestName to override the name of the test module.")
+				"Can use -PsuiteName to override the name of the test suite, -PtestName to override the name of the test module, and -Planguage to specify \"sjs\" or \"xqy\" test code.")
 		project.task("mlUnitTest", type: UnitTestTask, group: unitTestGroup, description: "Run tests found under /test/suites in the modules database. " +
 			"Connects to MarkLogic via the REST API server defined by mlTestRestPort (or by mlRestPort if mlTestRestPort is not set), and uses mlRest* properties for authentication. " +
 			"Use -PunitTestResultsPath to override where test result files are written, which defaults to build/test-results/marklogic-unit-test. " +
 			"Use -PrunCodeCoverage to enable code coverage support when running the tests. " +
 			"Use -PrunTeardown and -PrunSuiteTeardown to control whether teardown and suite teardown scripts are run; these default to 'true' and can be set to 'false' instead. ")
+
+		// Any granular task that deploys/undeploys resources may need to do so for a resource in a bundle, so these
+		// tasks must all depend on mlPrepareBundles
+		project.tasks.each { task ->
+			if (task.name.startsWith("mlDeploy") || task.name.startsWith("mlUndeploy")) {
+				task.dependsOn("mlPrepareBundles")
+			}
+		}
 
 		logger.info("Finished initializing ml-gradle\n")
 	}

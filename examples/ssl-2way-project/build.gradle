@@ -1,5 +1,5 @@
 plugins {
-  id "com.marklogic.ml-gradle" version "3.2.1"
+  id "com.marklogic.ml-gradle" version "4.5.1"
 }
 
 
@@ -18,7 +18,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import javax.net.ssl.sslContext;
+import javax.net.ssl.SSLContext;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.security.cert.CertificateException;

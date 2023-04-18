@@ -1,49 +1,72 @@
+/*
+ * Copyright (c) 2023 MarkLogic Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.marklogic.gradle.task
 
-import org.gradle.api.DefaultTask
-
-import com.marklogic.client.DatabaseClient
 import com.marklogic.appdeployer.AppConfig
 import com.marklogic.appdeployer.AppDeployer
 import com.marklogic.appdeployer.command.Command
 import com.marklogic.appdeployer.command.CommandContext
 import com.marklogic.appdeployer.impl.SimpleAppDeployer
+import com.marklogic.client.DatabaseClient
 import com.marklogic.mgmt.ManageClient
 import com.marklogic.mgmt.admin.AdminManager
+import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
+import org.gradle.api.tasks.Internal
 
 /**
  * Base class that provides easy access to all of the resources setup by MarkLogicPlugin.
  */
 class MarkLogicTask extends DefaultTask {
 
+	@Internal
     AppConfig getAppConfig() {
         getProject().property("mlAppConfig")
     }
 
+	@Internal
     CommandContext getCommandContext() {
         getProject().property("mlCommandContext")
     }
 
+	@Internal
     ManageClient getManageClient() {
         getProject().property("mlManageClient")
     }
 
+	@Internal
     AppDeployer getAppDeployer() {
         getProject().property("mlAppDeployer")
     }
 
+	@Internal
     AdminManager getAdminManager() {
         getProject().property("mlAdminManager")
     }
 
 	// TODO Should remove this as "mlSecurityUsername" is preferred, and this is now specific to InstallAdminTask
 	@Deprecated
+	@Internal
     String getAdminUsername() {
         project.hasProperty("mlAdminUsername") ? project.property("mlAdminUsername") : project.property("mlUsername")
     }
 
 	// TODO Should remove this as "mlSecurityUsername" is preferred, and this is now specific to InstallAdminTask
 	@Deprecated
+	@Internal
 	String getAdminPassword() {
 		project.hasProperty("mlAdminPassword") ? project.property("mlAdminPassword") : project.property("mlPassword")
 	}
@@ -94,13 +117,22 @@ class MarkLogicTask extends DefaultTask {
 		return deployer
 	}
 
+	Command getCommandWithClassName(String className) {
+		SimpleAppDeployer d = (SimpleAppDeployer)getAppDeployer()
+		Command command = d.getCommand(className)
+		// New in 4.4.0 - before, null was returned and no command was run, which would be very unexpected when the
+		// caller is asking to run a specific command.
+		if (command == null) {
+			throw new GradleException("No command found with class name: " + className)
+		}
+		return command
+	}
+
     void invokeDeployerCommandWithClassName(String className) {
-        SimpleAppDeployer d = (SimpleAppDeployer)getAppDeployer()
-        new SimpleAppDeployer(getManageClient(), getAdminManager(), d.getCommand(className)).deploy(getAppConfig())
+        new SimpleAppDeployer(getManageClient(), getAdminManager(), getCommandWithClassName(className)).deploy(getAppConfig())
     }
 
     void undeployWithCommandWithClassName(String className) {
-        SimpleAppDeployer d = (SimpleAppDeployer)getAppDeployer()
-        new SimpleAppDeployer(getManageClient(), getAdminManager(), d.getCommand(className)).undeploy(getAppConfig())
+        new SimpleAppDeployer(getManageClient(), getAdminManager(), getCommandWithClassName(className)).undeploy(getAppConfig())
     }
 }

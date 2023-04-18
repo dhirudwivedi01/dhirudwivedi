@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2023 MarkLogic Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.marklogic.gradle.task
 
 import com.marklogic.appdeployer.scaffold.ScaffoldGenerator
@@ -8,8 +23,10 @@ class NewProjectTask extends MarkLogicTask {
 
 	@TaskAction
 	void newProject() {
-		println "Welcome to the new project wizard. Please answer the following questions to start a new project."
-		println "Note that this will overwrite your current build.gradle and gradle.properties files, and backup copies of each will be made."
+		println "\nWelcome to the new project wizard. Please respond to each of the following prompts to start a new project.\n"
+		println "Each prompt below begins with '[ant:input]'; type your response for each prompt on the blank line, or press 'Enter' to " +
+			"accept the default value or values in the brackets.\n"
+		println "Note that this will overwrite your current build.gradle and gradle.properties files, and backup copies of each will be made.\n"
 		ant.input(message: "Application name:", addproperty: "mlAppName", defaultvalue: "myApp")
 		ant.input(message: "Host to deploy to:", addproperty: "mlHost", defaultvalue: "localhost")
 		ant.input(message: "MarkLogic admin username:", addproperty: "mlUsername", defaultvalue: "admin")
@@ -42,7 +59,7 @@ class NewProjectTask extends MarkLogicTask {
 		if (ant.mlPropertiesPlugin == "y") {
 			def text = 'plugins {' +
 				'\n  id "net.saliman.properties" version "1.5.1"' +
-				'\n  id "com.marklogic.ml-gradle" version "3.17.0"' +
+				'\n  id "com.marklogic.ml-gradle" version "4.5.1"' +
 				'\n}'
 			println "Updating build.gradle so that the Gradle properties plugin can be applied"
 			writeFile("build.gradle", text)
@@ -89,11 +106,11 @@ class NewProjectTask extends MarkLogicTask {
 	}
 
 	void writeFile(String filename, String text) {
-		File file = new File(filename);
+		File file = new File(getProject().getProjectDir(), filename);
 		if (file.exists()) {
 			new File("backup-" + filename).write(file.text)
 		}
-		println "Writing: " + filename
+		println "Writing: " + file.getAbsolutePath()
 		file.write(text)
 	}
 }

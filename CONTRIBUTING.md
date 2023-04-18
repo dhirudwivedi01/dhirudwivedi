@@ -1,6 +1,8 @@
+# Getting Started
+
 Here's how to get started with making contributions to this project:
 
-1. Install a JDK (Java Development Kit) version 7 or higher.
+1. Install a JDK (Java Development Kit) version 9 or higher. (If you're working with ml-gradle 2.x or 3.x, you only need Java 8.)
 1. Clone this repository.
 1. Assuming you want to use Eclipse for development, run "gradlew eclipse" (or "gradle eclipse" if you have Gradle installed locally). This will generate Eclipse project files.
 1. Import your repository folder as a new project in Eclipse. Everything should compile successfully and you should be good to go.
@@ -16,10 +18,10 @@ Currently, I don't have any tests for ml-gradle, as most of the interesting func
 there are many automated tests. I also haven't found an easy way to test tasks or the MarkLogicPlugin class. So for the
 time being, don't worry about automated tests. 
 
-I also don't have an .editorconfig file yet. In the absence of one, just follow these simple guidelines:
+## Formatting
 
-1. Use spaces for tabs
-1. Use a tab size of 4 spaces
+See the [.editorconfig](.editorconfig) file. If you don't have an [editorconfig plugin](https://editorconfig.org/#download), 
+either install that or follow the guidelines set in the file. 
 
 ## How to test ml-gradle changes
 
@@ -35,7 +37,7 @@ Then pick a project under ./examples, and replace the "plugins" block with the f
     buildscript {
       repositories {
         mavenLocal() 
-        jcenter()
+        mavenCentral()
       } 
       dependencies {
         classpath "com.marklogic:ml-gradle:(the version number you chose)"
@@ -43,8 +45,8 @@ Then pick a project under ./examples, and replace the "plugins" block with the f
     }
     apply plugin: "com.marklogic.ml-gradle"
 
-The above unfortunately has to be done because while the "plugins" DSL in Gradle is very concise and automatically 
-includes jcenter() as a repository, it can't be used for finding plugins in your local Maven repository. So we have to
+The above unfortunately has to be done because while the "plugins" DSL in Gradle is very concise, 
+it can't be used for finding plugins in your local Maven repository. So we have to
 replace it with the much more verbose syntax. Of course, after you're done testing with this, change the Gradle file
 back to just use the plugins DSL.
 

@@ -1,7 +1,10 @@
 buildscript {
   repositories {
 	  mavenLocal()
-    jcenter()
+		maven {
+			url "https://nexus.marklogic.com/repository/maven-snapshots/"
+		}
+		mavenCentral()
   }
   dependencies {
     classpath "com.marklogic:ml-gradle:${mlGradleVersion}"
@@ -17,5 +20,5 @@ apply plugin: "com.marklogic.ml-gradle"
 
 repositories {
 	mavenLocal()
-	jcenter()
+	mavenCentral()
 }

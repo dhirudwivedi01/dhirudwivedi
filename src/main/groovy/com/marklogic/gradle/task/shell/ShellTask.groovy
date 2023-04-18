@@ -1,6 +1,22 @@
+/*
+ * Copyright (c) 2023 MarkLogic Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.marklogic.gradle.task.shell
 
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.TaskAction
 
@@ -18,10 +34,14 @@ import org.gradle.api.tasks.TaskAction
  */
 class ShellTask extends JavaExec {
 
+	// This no longer specifies a mainClass, as the way that's done changed between Gradle 6.3 and 6.6.
+	// The docs for this task will be updated so that a user knows how to set the mainClass in the rare event
+	// that this task is actually used (this was included as a prototype and likely should never have been registered
+	// in MarkLogicPlugin).
+	
 	@TaskAction
 	@Override
-	public void exec() {
-		setMain("com.marklogic.groovysh.Main")
+	void exec() {
 		setStandardInput(System.in)
 
 		Project project = getProject()

@@ -1,6 +1,7 @@
 ![GitHub release](https://img.shields.io/github/release/marklogic-community/ml-gradle.svg)
 ![GitHub last commit](https://img.shields.io/github/last-commit/marklogic-community/ml-gradle.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Known Vulnerabilities](https://snyk.io/test/github/marklogic-community/ml-gradle/badge.svg)](https://snyk.io/test/github/marklogic-community/ml-gradle)
 
 Automate everything involving MarkLogic with Gradle
 =========
@@ -25,19 +26,25 @@ Groovy - ml-gradle is then a fairly thin wrapper around ml-app-deployer to expos
 Start using ml-gradle
 =========
 
-ml-gradle depends on at least [Java 8](https://java.com/en/download/) and [MarkLogic 8 or 9 or 10](https://developer.marklogic.com/products), 
-so if you have those installed, you're just a couple minutes away from using ml-gradle to start a new project and deploy an 
-application from it. 
+ml-gradle depends on at least [Java 8](https://java.com/en/download/) and [MarkLogic 9 or higher](https://developer.marklogic.com/products), 
+so if you have those installed, you're just a few minutes away from using ml-gradle to start a new project and deploy an 
+application from it. Note that in addition to Java 8, you can use Java 11 or Java 17, but please see 
+[the MarkLogic Java Client documentation](https://github.com/marklogic/java-client-api) for information on dependencies
+you may need when using Java 11 or Java 17. 
 
-First, [install Gradle](https://gradle.org/install/).
+First, [install Gradle](https://gradle.org/install/) - it is recommended to use at least Gradle 6, and if you are 
+running Gradle 7 or higher, you'll need to use ml-gradle 4.3.0 or higher. 
 
 Then, in an empty directory, create a file named "build.gradle" with your favorite text editor and enter the following:
 
-    plugins { id "com.marklogic.ml-gradle" version "3.17.0" }
+    plugins { id "com.marklogic.ml-gradle" version "4.5.1" }
     
 Then run:
 
     gradle mlNewProject
+
+(If you are trying ml-gradle 4.5.0, you will need to do `gradle -PmlUsername= -PmlPassword= mlNewProject` 
+due to a bug that has been fixed in ml-gradle 4.5.1).
 
 This starts a project wizard to stub out files for your new application. You can accept all the defaults, but be sure to
 enter a valid port number for the "REST API port" question. ml-gradle will then print the following logging:

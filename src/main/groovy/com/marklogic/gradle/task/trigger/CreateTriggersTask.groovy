@@ -1,5 +1,22 @@
+/*
+ * Copyright (c) 2023 MarkLogic Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.marklogic.gradle.task.trigger
 
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 
 import com.marklogic.gradle.task.MarkLogicTask;
@@ -11,28 +28,63 @@ import com.marklogic.gradle.xcc.XccHelper
  */
 class CreateTriggersTask extends MarkLogicTask {
 
-    String xccUrl
-    String triggerName
-    String description
-    String triggersDatabaseName
-    
-    String dataEventScope = "collection"
-    String dataEventContent = "document"
-    String dataEventCommit = "pre"
+	@Input
+	String xccUrl
 
-    String[] dataEventScopeArgs
-    String[] dataEventContentArgs
+	@Input
+	String triggerName
 
-    String moduleDatabase
-    String moduleRoot
-    String modulePath
+	@Input
+	@Optional
+	String description
 
-    boolean enabled = true
-    String permissions = "xdmp:default-permissions()"
-    boolean recursive = true
-    String taskPriority = "normal"
+	@Input
+	@Optional
+	String triggersDatabaseName
 
-    boolean recreate = true
+	@Input
+	String dataEventScope = "collection"
+
+	@Input
+	String dataEventContent = "document"
+
+	@Input
+	String dataEventCommit = "pre"
+
+	@Input
+	@Optional
+	String[] dataEventScopeArgs
+
+	@Input
+	@Optional
+	String[] dataEventContentArgs
+
+	@Input
+	@Optional
+	String moduleDatabase
+
+	@Input
+	@Optional
+	String moduleRoot
+
+	@Input
+	@Optional
+	String modulePath
+
+	@Input
+	boolean enabled = true
+
+	@Input
+	String permissions = "xdmp:default-permissions()"
+
+	@Input
+	boolean recursive = true
+
+	@Input
+	String taskPriority = "normal"
+
+	@Input
+	boolean recreate = true
 
     @TaskAction
     void createTriggers() {
@@ -44,7 +96,7 @@ class CreateTriggersTask extends MarkLogicTask {
         if (!triggersDatabaseName) {
             triggersDatabaseName = getAppConfig().getTriggersDatabaseName()
         }
-        
+
         boolean isAnyPropertyContent = !dataEventContentArgs
 
         if (isAnyPropertyContent) {
@@ -105,7 +157,7 @@ class CreateTriggersTask extends MarkLogicTask {
     String wrapInEval(String xquery) {
         String preamble = "xdmp:eval('"
         preamble += 'xquery version "1.0-ml"; import module namespace trgr="http://marklogic.com/xdmp/triggers" at "/MarkLogic/triggers.xqy"; '
-        
+
         String ending = "', (), <options xmlns='xdmp:eval'><database>{xdmp:database('" + triggersDatabaseName + "')}</database></options>)"
 
         return preamble + xquery + ending
